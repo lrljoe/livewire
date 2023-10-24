@@ -260,7 +260,26 @@ trait HandlesValidation
         return $validatedData;
     }
 
-    public function validateOnly($field, $rules = null, $messages = [], $attributes = [], $dataOverrides = [])
+    public function validateOnly($fields, $rules = null, $messages = [], $attributes = [])
+    {
+        [$rules, $messages, $attributes] = $this->providedOrGlobalRulesMessagesAndAttributes($rules, $messages, $attributes);
+        
+        if (!is_array($fields))
+        {
+            $this->validateSingle(field: $fields, rules: $rules, messages: $messages, attributes: $attributes);
+        }
+        else
+        {
+            $rules = collect($rules)->filter(function (string $value, string $key) use ($fields) {
+                return in_array(str($key)->before('.*'), $fields) || in_array(str($key)->explode('.')[0], $fields);
+            })->toArray();
+    
+            return $this->validate(rules: $rules, messages: $messages, attributes: $attributes);    
+        }
+    }
+
+
+    public function validateSingle($field, $rules = null, $messages = [], $attributes = [], $dataOverrides = [])
     {
         [$rules, $messages, $attributes] = $this->providedOrGlobalRulesMessagesAndAttributes($rules, $messages, $attributes);
 
@@ -344,6 +363,7 @@ trait HandlesValidation
         $this->resetErrorBag($ruleKeysForField);
 
         return $result;
+
     }
 
     protected function filterCollectionDataDownToSpecificKeys($data, $ruleKeys, $fieldKeys)
