@@ -260,25 +260,29 @@ trait HandlesValidation
         return $validatedData;
     }
 
-    public function validateOnly($fields, $rules = null, $messages = [], $attributes = [])
+    public function validateOnly($field, $rules = null, $messages = [], $attributes = [])
     {
-        [$rules, $messages, $attributes] = $this->providedOrGlobalRulesMessagesAndAttributes($rules, $messages, $attributes);
         
-        if (!is_array($fields))
+        // If is a single field (not an array) - use the original validateOnly logic - renamed to validateSingle
+        if (!is_array($field))
         {
-            $this->validateSingle(field: $fields, rules: $rules, messages: $messages, attributes: $attributes);
+            $this->validateSingle(field: $field, rules: $rules, messages: $messages, attributes: $attributes);
         }
         else
         {
-            $rules = collect($rules)->filter(function (string $value, string $key) use ($fields) {
-                return in_array(str($key)->before('.*'), $fields) || in_array(str($key)->explode('.')[0], $fields);
+            [$rules, $messages, $attributes] = $this->providedOrGlobalRulesMessagesAndAttributes($rules, $messages, $attributes);
+
+            // If is an array - strip out fields that have not been passed in through the array (including nested)
+            $rules = collect($rules)->filter(function (string $value, string $key) use ($field) {
+                return in_array(str($key)->before('.*'), $field) || in_array(str($key)->explode('.')[0], $field);
             })->toArray();
     
+            // Call original validate function, with the stripped down rule set
             return $this->validate(rules: $rules, messages: $messages, attributes: $attributes);    
         }
     }
 
-
+    // Original validateOnly method
     public function validateSingle($field, $rules = null, $messages = [], $attributes = [], $dataOverrides = [])
     {
         [$rules, $messages, $attributes] = $this->providedOrGlobalRulesMessagesAndAttributes($rules, $messages, $attributes);
