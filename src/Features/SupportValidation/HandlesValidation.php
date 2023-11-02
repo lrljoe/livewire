@@ -346,6 +346,25 @@ trait HandlesValidation
         return $result;
     }
 
+    public function validateSome($fields, $rules = null, $messages = [], $attributes = [], $dataOverrides = [])
+    {
+        [$rules, $messages, $attributes] = $this->providedOrGlobalRulesMessagesAndAttributes($rules, $messages, $attributes);
+
+        if (!is_array($fields))
+        {
+            $this->validateOnly(field: $fields, rules: $rules, messages: $messages, attributes: $attributes);
+        }
+        else {
+            // If is an array - strip out fields that have not been passed in through the array (including nested)
+            $rules = collect($rules)->filter(function (string $value, string $key) use ($fields) {
+                return in_array(str($key)->before('.*'), $fields) || in_array(str($key)->explode('.')[0], $fields);
+            })->toArray();
+
+            // Call original validate function, with the stripped down rule set
+            return $this->validate(rules: $rules, messages: $messages, attributes: $attributes);    
+        }
+    }
+
     protected function filterCollectionDataDownToSpecificKeys($data, $ruleKeys, $fieldKeys)
     {
 
